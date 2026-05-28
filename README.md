@@ -12,6 +12,8 @@ newscli get all 15 json
 [!["PyPI Version"](https://img.shields.io/pypi/v/newscli-tool.svg)](https://pypi.org/project/newscli-tool/)
 [!["License"](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+📄 [中文版](README_zh.md)
+
 ---
 
 ## Install
