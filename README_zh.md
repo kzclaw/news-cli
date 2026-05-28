@@ -19,10 +19,13 @@ newscli get all 15 json
 ## 安装
 
 ```bash
-# 从 TestPyPI 安装（全球可访问）
+# 从 PyPI 安装（全球任何机器）
+pip install newscli-tool
+
+# 从 TestPyPI 安装（开发版 / 测试版）
 pip install --index-url https://test.pypi.org/simple/ newscli-tool
 
-# 从 GitHub 安装（最新版）
+# 从 GitHub 安装（最新开发版）
 pip install git+https://github.com/kzclaw/news-cli.git
 
 # 一键安装脚本（任意机器，curl + python3 即可）

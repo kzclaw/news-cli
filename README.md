@@ -19,10 +19,13 @@ newscli get all 15 json
 ## Install
 
 ```bash
-# From TestPyPI (works now, globally accessible)
+# From PyPI (global, any machine)
+pip install newscli-tool
+
+# From TestPyPI (dev/beta versions)
 pip install --index-url https://test.pypi.org/simple/ newscli-tool
 
-# From GitHub (dev branch, latest)
+# From GitHub (latest dev branch)
 pip install git+https://github.com/kzclaw/news-cli.git
 
 # One-liner (any machine with curl + python3)
