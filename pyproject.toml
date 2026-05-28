@@ -7,7 +7,7 @@ name = "newscli"
 version = "1.0.0"
 description = "Unified news aggregation CLI — 9 sources, 25+ modules, natural language DSL"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.10"
 authors = [
     {name = "kzclaw", email = "kzclaw@users.noreply.github.com"}
