@@ -2,106 +2,110 @@
 
 **Unified news aggregation CLI** — pull from 9 sources in one command.
 
-```
+```bash
 newscli get hackernews topstories 5
 newscli get github trending 10 language python
 newscli get all 15 json
 ```
 
-## Features
+[!["Build Status"](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://pypi.org/project/newscli-tool/)
+[!["PyPI Version"](https://img.shields.io/pypi/v/newscli-tool.svg)](https://pypi.org/project/newscli-tool/)
+[!["License"](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-- **9 sources**: Hacker News · GitHub Trending · Hugging Face · ZAKER · V2EX · Reddit · DEV.to · Lobsters · RSS
-- **25+ modules** — each source has multiple views (topstories, ask, show, job...)
-- **Natural language DSL** — `get`, `list`, `看`, `拉` — no flags to remember
-- **URL enrichment** — auto-fetches og:description for every item
-- **Deduplication** — cross-source, Jaccard similarity, keeps richer item
-- **JSON output** — `NewsItem v1.0` schema, always 9 fields
-
-## Requirements
-
-- Python 3.10+
-- `requests`, `beautifulsoup4`, `lxml` (installed automatically)
+---
 
 ## Install
 
-### One-liner (any OS)
-
 ```bash
+# From TestPyPI (works now, globally accessible)
+pip install --index-url https://test.pypi.org/simple/ newscli-tool
+
+# From GitHub (dev branch, latest)
+pip install git+https://github.com/kzclaw/news-cli.git
+
+# One-liner (any machine with curl + python3)
 curl -sSL https://raw.githubusercontent.com/kzclaw/news-cli/main/install.sh | bash
 ```
 
-### pip
+After install, `newscli` is available in your terminal globally.
 
-```bash
-pip install --user -e git+https://github.com/kzclaw/news-cli.git
-```
+---
 
-### pipx (recommended)
+## Features
 
-```bash
-pipx install git+https://github.com/kzclaw/news-cli.git
-```
+| Feature | Details |
+|---------|---------|
+| **9 sources** | Hacker News · GitHub Trending · Hugging Face · ZAKER · V2EX · Reddit · DEV.to · Lobsters · RSS |
+| **25+ modules** | Each source has multiple views — topstories, trending, ask, show, job, by language, by node, by subreddit… |
+| **Natural language DSL** | `get`, `list`, `看`, `拉` — no flags to remember |
+| **URL enrichment** | Auto-fetches og:description for every item with `summary = null` |
+| **Deduplication** | Cross-source Jaccard similarity, 70% threshold, keeps richer item |
+| **JSON output** | `NewsItem v1.0` schema — always 9 fields, `null` means "source doesn't have it" |
+
+---
 
 ## Usage
 
 ### Natural language mode
 
+```
+newscli get <source> <module> [limit] [json] [noenrich]
+```
+
+**Examples**
+
 ```bash
+# Single source
 newscli get hackernews topstories 5
 newscli get github trending 10 language python
 newscli get v2ex node python 10
 newscli get reddit subreddit technology 10
-newscli get hackernews topstories 5 and github trending 10 and huggingface daily 5
+newscli get huggingface daily 5
+
+# Multi-source (AND)
+newscli get hackernews topstories 5 and github trending 10 and reddit subreddit programming 5
+
+# All sources
 newscli get all 15 json
+
+# JSON output (machine-readable)
+newscli get hackernews topstories 5 json
+newscli get all 3 json noenrich
+
+# List available sources / modules
 newscli list
 newscli list github
+newscli list v2ex
 ```
 
 ### Flag mode
 
 ```bash
-python3 cli.py --source hackernews:topstories --limit 5 --json
-python3 cli.py --source "hackernews:topstories&github:trending" --limit 5
+python3 -m newscli --source hackernews:topstories --limit 5 --json
+python3 -m newscli --source "hackernews:topstories&github:trending" --limit 5
 ```
 
-### JSON output
+---
 
-Add `json` at the end of any command:
-
-```bash
-newscli get hackernews topstories 5 json
-```
-
-## Source & Module reference
+## Source & Module Reference
 
 | Source | Modules |
 |--------|---------|
-| `hackernews` | `topstories`, `new`, `ask`, `show`, `jobs` |
-| `github` | `trending`, `trending-weekly`, `trending-monthly` |
-| `huggingface` | `daily`, `weekly`, `monthly` |
-| `zaker` | `hot`, `news` |
-| `v2ex` | `latest`, `hot`, `node:<name>` |
-| `reddit` | `subreddit:<name>` |
-| `devto` | `latest`, `top`, `tags:<tag>` |
-| `lobsters` | `newest`, `hot`, `top`, `upcoming` |
-| `rss` | `feed:<url>` |
+| `hackernews` | `topstories` · `new` · `ask` · `show` · `jobs` |
+| `github` | `trending` · `trending-weekly` · `trending-monthly` · language parameter |
+| `huggingface` | `daily` · `weekly` · `monthly` |
+| `zaker` | `hot` · `news` · `search` · category parameter |
+| `v2ex` | `hot` · `latest` · `node:<name>` |
+| `reddit` | `subreddit:<name>` · `popular` · `hot` |
+| `devto` | `latest` · `top` · `tags:<tag>` |
+| `lobsters` | `newest` · `hot` · `top` · `upcoming` |
+| `rss` | `feed:<url>` — any RSS/Atom feed by URL |
 
-## Architecture
+---
 
-```
-newscli/
-  cli.py          — dual-mode entry (flags + NL DSL)
-  aggregator.py   — ThreadPoolExecutor dispatcher
-  parser.py      — NL DSL parser
-  enrich.py      — concurrent og:description fetcher
-  sources/
-    base.py      — NewsSource base class + NewsItem schema
-    hackernews.py / github.py / ...
-```
+## Output Schema
 
-## NewsItem Schema
-
-Every item follows `NewsItem v1.0`:
+Every item follows `NewsItem v1.0` — null means "source doesn't provide this", never faked:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -115,6 +119,38 @@ Every item follows `NewsItem v1.0`:
 | `score` | `int\|null` | Score / points (if available) |
 | `comments` | `int\|null` | Comment count (if available) |
 
+---
+
+## Architecture
+
+```
+newscli/
+├── cli.py          # Dual-mode entry: flags + NL DSL
+├── aggregator.py   # ThreadPoolExecutor dispatcher + deduplication
+├── parser.py       # NL DSL parser (no AI — pure rules)
+├── enrich.py       # Concurrent og:description fetcher
+└── sources/
+    ├── base.py     # NewsSource ABC + NewsItem schema
+    ├── hackernews.py
+    ├── github.py
+    ├── huggingface.py
+    ├── zaker.py
+    ├── v2ex.py
+    ├── reddit.py
+    ├── devto.py
+    ├── lobsters.py
+    └── rss.py
+```
+
+---
+
+## Requirements
+
+- Python 3.10+
+- `requests` · `beautifulsoup4` · `lxml` (installed automatically)
+
+---
+
 ## License
 
-MIT
+MIT · [kzclaw/news-cli](https://github.com/kzclaw/news-cli)
