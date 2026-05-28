@@ -5,24 +5,31 @@
 set -e
 
 REPO="kzclaw/news-cli"
-TMP=$(mktemp -d)
-DEST="$HOME/Library/Python/3.14/lib/python/site-packages"
+GH_TOKEN=""
 
-echo "📦 Cloning news-cli..."
-git clone --depth=1 https://github.com/"$REPO".git "$TMP/news-cli" 2>/dev/null ||
-hub clone "$REPO" "$TMP/news-cli" 2>/dev/null ||
-{ echo "❌ git clone failed — is git installed?"; exit 1; }
+# Accept token as second arg or from env
+[[ -n "$2" ]] && GH_TOKEN="$2"
+[[ -z "$GH_TOKEN" && -n "$GITHUB_TOKEN" ]] && GH_TOKEN="$GITHUB_TOKEN"
 
-echo "🔧 Installing with pip..."
-python3 -m pip install --user -e "$TMP/news-cli" 2>/dev/null ||
-python3 -m pip install --user "$TMP/news-cli" 2>/dev/null ||
-{ echo "❌ pip install failed"; rm -rf "$TMP"; exit 1; }
+echo "📦 Downloading news-cli v1.0.0 wheel..."
+if [[ -n "$GH_TOKEN" ]]; then
+    curl -fsSL \
+        -H "Authorization: token $GH_TOKEN" \
+        -o /tmp/newscli-1.0.0-py3-none-any.whl \
+        "https://github.com/$REPO/releases/download/v1.0.0/newscli-1.0.0-py3-none-any.whl"
+else
+    curl -fsSL \
+        -o /tmp/newscli-1.0.0-py3-none-any.whl \
+        "https://github.com/$REPO/releases/download/v1.0.0/newscli-1.0.0-py3-none-any.whl"
+fi
 
-rm -rf "$TMP"
+echo "🔧 Installing..."
+python3 -m pip install --user /tmp/newscli-1.0.0-py3-none-any.whl 2>/dev/null || \
+python3 -m pip install --user --force-reinstall /tmp/newscli-1.0.0-py3-none-any.whl
 
-# Verify
-NEWSCLI_BIN=$(python3 -c "import sys; print([p for p in sys.path if 'newscli' in p][0])" 2>/dev/null || true)
+rm -f /tmp/newscli-1.0.0-py3-none-any.whl
+
 echo ""
-echo "✅ news-cli installed!"
+echo "✅ news-cli v1.0.0 installed!"
 echo "   Run: newscli get hackernews topstories 5"
 echo "   Docs: https://github.com/$REPO#readme"
