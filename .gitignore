@@ -5,3 +5,4 @@ build/
 dist/
 .tox/
 tasks/news-cli-okr.md
+tasks/
