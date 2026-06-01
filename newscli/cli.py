@@ -101,6 +101,18 @@ def _build_parser() -> argparse.ArgumentParser:
         help="禁用 --enrich，不拉取原文摘要"
     )
     p.add_argument(
+        "--dedup", type=int, default=70, metavar="THRESHOLD",
+        help="v1.1: 跨源去重相似度阈值 (0-100)，默认 70，0=禁用"
+    )
+    p.add_argument(
+        "--strict", action="store_true",
+        help="v1.1: 严格模式，schema 验证失败时 hard fail"
+    )
+    p.add_argument(
+        "--no-validate", dest="validate", action="store_false",
+        help="v1.1: 禁用 schema 验证（默认开）"
+    )
+    p.add_argument(
         "--modules", action="store_true",
         help="列出所有 source 的可用 module"
     )
@@ -155,6 +167,9 @@ def main() -> None:
         keyword=args.keyword,
         params=params,
         enrich=args.enrich,
+        dedup_threshold=args.dedup,
+        validate=args.validate,
+        strict=args.strict,
     )
 
     if args.json:
@@ -194,6 +209,9 @@ def _run_nl(raw: str) -> dict:
         keyword=f["keyword"],
         params=f["params"],
         enrich=f["enrich"],
+        dedup_threshold=70,  # NL 模式默认 70%
+        validate=True,
+        strict=False,
     )
 
     if f["output"] == "json":

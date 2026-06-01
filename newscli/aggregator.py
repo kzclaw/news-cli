@@ -38,6 +38,9 @@ class NewsAggregator:
         keyword: str | None = None,
         params: dict | None = None,
         enrich: bool = True,  # 默认对 summary=null 的 item 拉取原文摘要
+        dedup_threshold: int = 70,  # v1.1: 跨源去重阈值（0=禁用, 70=默认, 100=精确匹配）
+        validate: bool = True,  # v1.1: heat/url/time 验证（默认开）
+        strict: bool = False,  # v1.1: 严格模式，验证失败 hard fail
     ) -> dict:
         """
         并行拉取所有 source，返回统一格式。
@@ -128,9 +131,15 @@ class NewsAggregator:
         for key, items in results.items():
             all_items.extend(items)
 
-        # 跨 source 去重：标题相似度 ≥ 70%（仅多 source 时触发）
-        if len(results) > 1:
-            all_items = self._deduplicate(all_items)
+        # v1.1: 跨 source 去重（阈值可调，0=禁用）
+        schema_validation: list[str] = []
+        if dedup_threshold > 0 and len(results) > 1:
+            all_items = self._deduplicate(all_items, threshold=dedup_threshold)
+
+        # v1.1: heat/url/time 验证
+        if validate:
+            from .validate import validate_items
+            all_items, schema_validation = validate_items(all_items, strict=strict)
 
         # 可选：enrich — 对 summary=null 的 item 并发拉取原文 description
         if enrich:
@@ -142,19 +151,26 @@ class NewsAggregator:
 
         return {
             "ok": True,
-            "schema": "NewsItem v1.0",
+            "schema": "NewsItem v1.1",
             "sources": {k: len(v) for k, v in results.items()},
             "items": all_items,
             "total": len(all_items),
             "errors": errors,
+            "schema_validation": schema_validation,  # v1.1
         }
 
     @staticmethod
-    def _deduplicate(items: list[dict]) -> list[dict]:
+    def _deduplicate(items: list[dict], threshold: int = 70) -> list[dict]:
         """
-        跨 source 去重。相似度阈值 70%（标题 normalized 后比对）。
-        保留第一条出现的item，移除后续相似项。
+        跨 source 去重。相似度阈值可调（默认 70%，0=禁用）。
+        保留第一条出现的item，移除后续相似项（合并更丰富字段的版本）。
+
+        v1.1 升级：
+        - threshold 改成参数（不再硬编码 70%）
+        - 类似度算法仍用 Jaccard（比 SequenceMatcher 简单，无新依赖）
         """
+        if threshold <= 0:
+            return items
         from urllib.parse import urlparse
         def normalize_title(t: str) -> str:
             """小写 + 去除标点 + strip()"""
@@ -197,7 +213,7 @@ class NewsAggregator:
                 item_domain = urlparse(item.get("url", "")).netloc or ""
                 if s_domain and item_domain and s_domain != item_domain:
                     continue
-                if similarity(norm, s_norm) >= 0.70:
+                if similarity(norm, s_norm) >= threshold / 100.0:
                     dup_idx = i
                     break
             if dup_idx is not None:
