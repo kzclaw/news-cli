@@ -25,6 +25,7 @@ import sys
 from .aggregator import NewsAggregator
 from .sources import REGISTRY, rss as rss_module
 from .parser import parseNL, ParseError, list_sources, list_source_modules
+from . import newscli_skill  # v1.1: OpenClaw skill install/update/check
 
 
 # ─── 输出格式器 ─────────────────────────────────────────────────
@@ -132,6 +133,13 @@ def _parse_params(params_str: str | None) -> dict:
 # ─── 主入口 ─────────────────────────────────────────────────────
 
 def main() -> None:
+    # v1.1: 首次跑时检查 OpenClaw skill（用户拒绝后 24h 不重复问）
+    if "--modules" not in sys.argv and "--help" not in sys.argv and "-h" not in sys.argv:
+        try:
+            newscli_skill.prompt_if_outdated()
+        except (EOFError, KeyboardInterrupt):
+            pass  # 用户 Ctrl+C 跳过
+
     # ── 自然语言模式检测 ──
     # 如果没有任何 flag，且 positional args 以 list/get/fetch/看/拉/找 开头，走 NL parser
     if len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
@@ -202,6 +210,11 @@ def _run_nl(raw: str) -> dict:
     f = result.fetch
     source_filter = f["source_filter"] if f["source_filter"] != "all" else None
 
+    # v1.1: NL 模式从 parser 拿 flag，dedup=None 时用默认 70
+    dedup_threshold = f.get("dedup") if f.get("dedup") is not None else 70
+    strict = f.get("strict", False)
+    validate = f.get("validate", True)
+
     agg = NewsAggregator(limit_per_source=f["limit"])
     agg_result = agg.fetch(
         source_filter=source_filter,
@@ -209,9 +222,9 @@ def _run_nl(raw: str) -> dict:
         keyword=f["keyword"],
         params=f["params"],
         enrich=f["enrich"],
-        dedup_threshold=70,  # NL 模式默认 70%
-        validate=True,
-        strict=False,
+        dedup_threshold=dedup_threshold,
+        validate=validate,
+        strict=strict,
     )
 
     if f["output"] == "json":

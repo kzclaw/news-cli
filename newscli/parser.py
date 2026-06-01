@@ -45,7 +45,9 @@ ALL_SOURCES = {
 
 CONNECTORS  = {"&", "and"}
 FIXED_TOKENS = {"json", "noenrich", "no", "enrich", "all",
-                "list", "lists", "ls", "get", "fetch", "看", "拉", "找", "search"}
+                "list", "lists", "ls", "get", "fetch", "看", "拉", "找", "search",
+                # v1.1 新增
+                "dedup", "strict", "novalidate", "noenrich"}
 LIST_VERBS  = {"list", "lists", "ls"}
 FETCH_VERBS = {"get", "fetch", "看", "拉", "找", "search"}
 
@@ -59,6 +61,7 @@ class ParseResult:
     command:    Literal["list", "fetch"] = "fetch"
     list_target: str = "sources"
     fetch:      dict = field(default_factory=dict)
+    # v1.1: ParseResult.fetch 现在多 3 字段：dedup / strict / validate
 
 
 # ──────────────────────────────────────────────
@@ -160,6 +163,10 @@ def _parse_fetch(tokens: list[str]) -> ParseResult:
             "enrich":  first["enrich"],
             "keyword": first["keyword"],
             "params":  first["params"],
+            # v1.1 flags（取首个 clause 的；如想合并所有 clause 可改）
+            "dedup":   first.get("dedup"),
+            "strict":  first.get("strict", False),
+            "validate": first.get("validate", True),
             "_clauses": parsed,
         },
     )
@@ -178,17 +185,21 @@ def _parse_clause(tokens: list[str]) -> dict:
     # 剩余 tokens 去 parse modifiers
     # rest = tokens 在 source+module 解析时已经消费掉了 extra，剩下的全是 modifiers
     rest = extra.pop("_rest", [])
-    limit, output, enrich, keyword, more = _parse_modifiers(rest)
-    merged_extra = {**extra, **more}
+    mods = _parse_modifiers(rest)
+    merged_extra = {**extra, **mods["extra"]}
     source_filter = _build_filter(src, mod, merged_extra)
 
     return {
         "source_filter": source_filter,
-        "limit":   limit,
-        "output":  output,
-        "enrich":  enrich,
-        "keyword": keyword,
+        "limit":   mods["limit"],
+        "output":  mods["output"],
+        "enrich":  mods["enrich"],
+        "keyword": mods["keyword"],
         "params":  merged_extra,
+        # v1.1: 跨 clause 共享的 flag
+        "dedup":   mods.get("dedup"),
+        "strict":  mods.get("strict", False),
+        "validate": mods.get("validate", True),
     }
 
 
@@ -300,14 +311,19 @@ def _build_filter(source: str, module: str, extra: dict) -> str:
 
 def _parse_modifiers(tokens: list[str]) -> tuple:
     """
-    解析 limit / output / enrich / keyword / extra。
-    返回 (limit, output, enrich, keyword, extra_dict)
+    解析 limit / output / enrich / keyword / extra / v1.1 flags。
+    返回 (limit, output, enrich, keyword, extra_dict, v1.1_flags)
+    v1.1_flags = {"dedup": int|None, "strict": bool, "validate": bool}
     """
     limit   = 10
     output  = "text"
     enrich  = True
     keyword: Optional[str] = None
     extra: dict = {}
+    # v1.1 新增
+    dedup: Optional[int] = None      # 显式给定时覆盖默认 70
+    strict: bool = False
+    validate: bool = True
 
     PARAM_KEYS = {"node", "subreddit", "tag", "category", "language", "since", "url"}
     i = 0
@@ -316,6 +332,9 @@ def _parse_modifiers(tokens: list[str]) -> tuple:
         t_lower = t.lower()
 
         if t.isdigit():
+            # v1.1: 数字可能是 dedup 阈值（紧跟在 dedup 后面）
+            if i > 0 and tokens[i-1].lower() == "dedup":
+                dedup = int(t); i += 1; continue
             limit = int(t); i += 1; continue
 
         if t_lower == "json":
@@ -349,9 +368,27 @@ def _parse_modifiers(tokens: list[str]) -> tuple:
                 keyword = t
                 i += 1; continue
 
+        # v1.1: strict / novalidate 关键字
+        if t_lower == "strict":
+            strict = True; i += 1; continue
+        if t_lower == "novalidate" or t_lower == "no-validate":
+            validate = False; i += 1; continue
+        # v1.1: dedup 单独出现（无值，标志位）
+        if t_lower == "dedup":
+            i += 1; continue  # 数字紧跟在下一轮处理
+
         i += 1
 
-    return limit, output, enrich, keyword, extra
+    return {
+        "limit":    limit,
+        "output":   output,
+        "enrich":   enrich,
+        "keyword":  keyword,
+        "extra":    extra,
+        "dedup":    dedup,        # v1.1
+        "strict":   strict,       # v1.1
+        "validate": validate,     # v1.1
+    }
 
 
 # ──────────────────────────────────────────────
