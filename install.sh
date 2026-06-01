@@ -7,29 +7,38 @@ set -e
 REPO="kzclaw/news-cli"
 GH_TOKEN=""
 
-# Accept token as second arg or from env
+# Accept token as second arg or from env (only needed for GitHub wheel)
 [[ -n "$2" ]] && GH_TOKEN="$2"
 [[ -z "$GH_TOKEN" && -n "$GITHUB_TOKEN" ]] && GH_TOKEN="$GITHUB_TOKEN"
 
-echo "📦 Downloading news-cli v1.0.0 wheel..."
-if [[ -n "$GH_TOKEN" ]]; then
-    curl -fsSL \
-        -H "Authorization: token $GH_TOKEN" \
-        -o /tmp/newscli-1.0.0-py3-none-any.whl \
-        "https://github.com/$REPO/releases/download/v1.0.0/newscli-1.0.0-py3-none-any.whl"
+# Prefer PyPI (production). Fall back to TestPyPI / GitHub release if needed.
+VERSION="${VERSION:-1.1.0}"
+
+echo "📦 Installing news-cli v${VERSION} from PyPI..."
+if python3 -m pip install --user "newscli-tool==${VERSION}" 2>/dev/null; then
+    echo "✅ news-cli v${VERSION} installed via PyPI"
 else
-    curl -fsSL \
-        -o /tmp/newscli-1.0.0-py3-none-any.whl \
-        "https://github.com/$REPO/releases/download/v1.0.0/newscli-1.0.0-py3-none-any.whl"
+    # Fallback: download wheel from GitHub release (requires GH_TOKEN for private)
+    echo "⚠️  PyPI install failed, falling back to GitHub release v${VERSION}..."
+    WHEEL="newscli_tool-${VERSION}-py3-none-any.whl"
+    if [[ -n "$GH_TOKEN" ]]; then
+        curl -fsSL \
+            -H "Authorization: token $GH_TOKEN" \
+            -o "/tmp/${WHEEL}" \
+            "https://github.com/${REPO}/releases/download/v${VERSION}/${WHEEL}"
+    else
+        curl -fsSL \
+            -o "/tmp/${WHEEL}" \
+            "https://github.com/${REPO}/releases/download/v${VERSION}/${WHEEL}" 2>/dev/null || \
+            curl -fsSL \
+                -o "/tmp/${WHEEL}" \
+                "https://github.com/${REPO}/releases/download/v${VERSION}/${WHEEL//_/-}"
+    fi
+    python3 -m pip install --user --force-reinstall "/tmp/${WHEEL}"
+    rm -f "/tmp/${WHEEL}"
+    echo "✅ news-cli v${VERSION} installed via GitHub release"
 fi
 
-echo "🔧 Installing..."
-python3 -m pip install --user /tmp/newscli-1.0.0-py3-none-any.whl 2>/dev/null || \
-python3 -m pip install --user --force-reinstall /tmp/newscli-1.0.0-py3-none-any.whl
-
-rm -f /tmp/newscli-1.0.0-py3-none-any.whl
-
 echo ""
-echo "✅ news-cli v1.0.0 installed!"
 echo "   Run: newscli get hackernews topstories 5"
-echo "   Docs: https://github.com/$REPO#readme"
+echo "   Docs: https://github.com/${REPO}#readme"
