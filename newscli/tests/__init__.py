@@ -1,0 +1,1 @@
+"""newscli tests package."""

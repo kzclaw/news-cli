@@ -16,6 +16,13 @@ newscli get all 15 json
 
 ---
 
+## What's new in v1.1.2
+
+- **Multi-source separator fix** — `--source` now accepts both `,` and `&` as separators (was `&` only)
+- `newscli --source "hackernews:topstories,github:trending"` now works as documented
+
+---
+
 ## What's new in v1.1
 
 - **Cross-source deduplication with adjustable threshold** — `--dedup 0-100` (default 70, 0=disabled)

@@ -16,6 +16,13 @@ newscli get all 15 json
 
 ---
 
+## v1.1.2 新特性
+
+- **多源分隔符修复** — `--source` 现在同时支持 `,` 和 `&` 作为分隔符（之前只支持 `&`）
+- `newscli --source "hackernews:topstories,github:trending"` 现在按文档正常工作
+
+---
+
 ## v1.1 新特性
 
 - **跨源去重（阈值可调）** — `--dedup 0-100`（默认 70，0=禁用）

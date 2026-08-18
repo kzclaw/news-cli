@@ -72,7 +72,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--source", "-s", default="all",
-        help="source:module 格式，逗号分隔多源\n"
+        help="source:module 格式，逗号或 & 分隔多源\n"
              "  hackernews:topstories|newest|ask|show|jobs\n"
              "  github:trending\n"
              "  huggingface:daily|trending\n"

@@ -9,6 +9,7 @@ aggregator.py — News Aggregator
 """
 
 import concurrent.futures
+import re
 from dataclasses import asdict
 from typing import Optional
 from newscli.sources import REGISTRY, NewsItem, SourceError, rss as rss_module
@@ -243,7 +244,7 @@ class NewsAggregator:
         if not filter_str:
             return []
         items = []
-        for part in filter_str.split("&"):
+        for part in re.split(r"\s*[&,]\s*", filter_str):
             part = part.strip()
             if not part:
                 continue
