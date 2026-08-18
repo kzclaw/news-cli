@@ -25,3 +25,4 @@ jobs:
         with:
           # 不需要 password — OIDC 自动认证
           packages-dir: dist/
+        attestations: false  # sigstore TUF 403 in GitHub runner — disable PEP 740 for now
