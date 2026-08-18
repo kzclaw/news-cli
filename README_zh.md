@@ -85,7 +85,8 @@ newscli get v2ex node python 10
 newscli get reddit subreddit technology 10
 newscli get huggingface daily 5
 
-# 多源（用 & 分隔）
+# 多源（v1.1.2+ 同时支持 , 和 &）
+newscli get "hackernews:topstories,github:trending" 5
 newscli get "hackernews:topstories&github:trending" 5
 
 # 全源
@@ -102,8 +103,9 @@ newscli get all 3 json noenrich
 # 基础
 newscli --source hackernews:topstories --limit 5 --json
 
-# 多源 + 跨源去重
+# 多源 + 跨源去重（v1.1.2+ 同时支持 , 和 &）
 newscli --source all --limit 5 --dedup 80 --json
+newscli --source "hackernews:topstories,github:trending" --limit 3 --dedup 70 --json
 
 # 严格模式（验证失败 hard fail）
 newscli --source all --limit 5 --strict --json

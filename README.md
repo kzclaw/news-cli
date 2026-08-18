@@ -83,7 +83,8 @@ newscli get v2ex node python 10
 newscli get reddit subreddit technology 10
 newscli get huggingface daily 5
 
-# Multi-source (use & between sources)
+# Multi-source (use , or & between sources, v1.1.2+)
+newscli get "hackernews:topstories,github:trending" 5
 newscli get "hackernews:topstories&github:trending" 5
 
 # All sources
@@ -100,8 +101,9 @@ newscli get all 3 json noenrich
 # Basic
 newscli --source hackernews:topstories --limit 5 --json
 
-# Multi-source with dedup
+# Multi-source with dedup (v1.1.2+ supports , and &)
 newscli --source all --limit 5 --dedup 80 --json
+newscli --source "hackernews:topstories,github:trending" --limit 3 --dedup 70 --json
 
 # Strict validation (hard-fail on schema issues)
 newscli --source all --limit 5 --strict --json
